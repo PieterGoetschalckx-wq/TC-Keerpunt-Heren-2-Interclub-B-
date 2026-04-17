@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>🔐 TC Keerpunt · Interclub AI Coach</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --green: #2ecc71; --green-light: #e8f8f0; --green-dark: #1e8449; --court: #1e8449;
+    --clay: #d35400; --navy: #1a252f; --slate: #2c3e50; --muted: #7f8c8d; --bg: #f4f7f6;
+    --white: #ffffff; --red: #e74c3c; --red-light: #fadbd8; --yellow: #f1c40f;
+    --yellow-light: #fef9e7; --border: #e0e7e9; --shadow-sm: 0 8px 20px rgba(0,0,0,0.06);
+    --shadow-md: 0 12px 28px rgba(0,0,0,0.1); --radius-card: 20px; --radius-btn: 40px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--navy); min-height: 100vh; }
+  #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--navy); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .login-card { background: white; padding: 40px; border-radius: 40px; box-shadow: 0 30px 50px rgba(0,0,0,0.3); text-align: center; max-width: 400px; width: 90%; border-bottom: 8px solid var(--green); }
+  .login-card i { font-size: 64px; color: var(--court); margin-bottom: 20px; }
+  .login-card h2 { font-family: 'Bebas Neue', cursive; font-size: 36px; color: var(--navy); }
+  .login-card input { width: 100%; padding: 16px 20px; margin: 24px 0 16px; border: 2px solid var(--border); border-radius: 60px; font-size: 18px; text-align: center; }
+  .login-card button { background: var(--court); color: white; border: none; padding: 16px 32px; border-radius: 60px; font-weight: 700; font-size: 18px; cursor: pointer; width: 100%; }
+  .login-error { color: var(--red); margin-top: 12px; font-weight: 500; min-height: 24px; }
+  #app-container { display: none; }
+  header { background: linear-gradient(135deg, #1a252f 0%, #2c3e50 100%); color: white; padding: 16px 28px; display: flex; align-items: center; gap: 18px; position: sticky; top: 0; z-index: 100; border-bottom: 3px solid var(--green); }
+  header i { font-size: 36px; color: var(--green); }
+  header .logo { font-family: 'Bebas Neue', cursive; font-size: 30px; letter-spacing: 3px; }
+  header .logo span { color: var(--green); }
+  nav { display: flex; gap: 8px; justify-content: center; background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); padding: 12px 24px; position: sticky; top: 77px; z-index: 99; }
+  nav button { padding: 10px 22px; border: none; border-radius: var(--radius-btn); background: transparent; color: var(--slate); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  nav button:hover { background: var(--green-light); color: var(--green-dark); }
+  nav button.active { background: var(--court); color: white; }
+  .page { display: none; padding: 28px 24px; max-width: 1300px; margin: 0 auto; }
+  .page.active { display: block; }
+  .card { background: var(--white); border-radius: var(--radius-card); padding: 24px 28px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+  .card h2 { font-family: 'Bebas Neue', cursive; font-size: 26px; color: var(--court); margin-bottom: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--green-light); padding-bottom: 12px; }
+  .match-card { cursor: pointer; border-left: 6px solid transparent; }
+  .match-card:hover { box-shadow: var(--shadow-md); border-left-color: var(--green); }
+  .match-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .match-date { font-family: 'Bebas Neue', cursive; font-size: 28px; color: var(--court); background: var(--green-light); padding: 6px 12px; border-radius: 16px; }
+  .match-teams { font-size: 18px; font-weight: 600; flex: 1; }
+  .badge { padding: 6px 16px; border-radius: 40px; font-size: 12px; font-weight: 700; }
+  .badge.home { background: var(--green); color: white; }
+  .badge.away { background: var(--clay); color: white; }
+  .match-details { display: none; margin-top: 24px; padding-top: 16px; border-top: 2px dashed var(--border); }
+  .schema-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .schema-table th { background: var(--navy); color: white; padding: 12px; text-align: left; }
+  .schema-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+  .divider-row td { background: var(--green-dark) !important; color: white; font-weight: 700; }
+  .win-select, .schema-table input { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 13px; background: white; }
+  .btn-save-rating, .btn-primary { background: var(--navy); color: white; border: none; padding: 10px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary { background: var(--court); padding: 14px 28px; font-size: 16px; }
+  .team-layout { display: grid; grid-template-columns: 260px 1fr; gap: 24px; }
+  .sidebar { background: var(--white); border-radius: var(--radius-card); padding: 22px 18px; position: sticky; top: 150px; }
+  .player-check { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 14px; cursor: pointer; }
+  .player-check:hover { background: var(--green-light); }
+  .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; }
+  .player-card { background: white; border-radius: 24px; padding: 22px 20px; }
+  .lineup-row { display: flex; align-items: center; gap: 16px; background: var(--bg); padding: 14px 20px; border-radius: 18px; border-left: 6px solid var(--green); }
+  .totaal-bar { margin-top: 24px; padding: 18px 24px; background: linear-gradient(145deg, #1e2b38, #1a252f); color: white; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; }
+  .stats-table { width: 100%; border-collapse: collapse; }
+  .stats-table th { text-align: left; padding: 8px 5px; border-bottom: 2px solid var(--border); }
+  .stats-table td { padding: 8px 5px; border-bottom: 1px solid var(--border); }
+  .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0 4px; }
+  .matrix-table th { background: var(--navy); color: white; padding: 14px 8px; }
+  .matrix-table td { background: white; padding: 8px; text-align: center; border-radius: 12px; }
+  .matrix-input { width: 90px; padding: 10px; border-radius: 14px; border: 1.5px solid var(--border); text-align: center; }
+  .klassement-table { width: 100%; border-collapse: collapse; background: white; border-radius: 24px; overflow: hidden; }
+  .klassement-table th { background: var(--navy); color: white; padding: 16px 10px; }
+  .klassement-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+  .warning { background: var(--red-light); color: var(--red); border-radius: 12px; padding: 12px 18px; }
+  .sync-indicator { position: fixed; bottom: 20px; right: 20px; background: white; padding: 10px 20px; border-radius: 40px; box-shadow: var(--shadow-md); font-size: 13px; z-index: 1000; display: flex; align-items: center; gap: 8px; }
+  .synced { color: var(--green); }
+  .syncing { color: var(--yellow); }
+  .pts-badge { font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 30px; background: var(--green-light); color: var(--green-dark); }
+  .klass-tag { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; background: var(--green-light); color: var(--green-dark); }
+  .section-title { font-family: 'Bebas Neue', cursive; font-size: 18px; color: var(--slate); margin: 16px 0 8px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .overall-rating { font-size: 14px; background: var(--navy); color: white; padding: 4px 10px; border-radius: 30px; font-weight: 600; }
+  .stat-row { margin-bottom: 8px; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; display: flex; justify-content: space-between; }
+  .progress { height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress .bar { height: 100%; background: linear-gradient(90deg, var(--green), #4ade80); border-radius: 4px; }
+  .desc-text { font-size: 12px; color: var(--slate); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .win-pct-bar { height: 6px; background: var(--border); border-radius: 3px; }
+  .win-pct-fill { height: 6px; background: var(--court); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="login-overlay">
+  <div class="login-card">
+    <i class="fas fa-lock"></i>
+    <h2>TC KEERPUNT · AI COACH</h2>
+    <p style="color: var(--muted); margin-bottom: 8px;">Heren 2 · max 270 punten</p>
+    <input type="password" id="password-input" placeholder="Voer wachtwoord in" onkeypress="if(event.key==='Enter')checkPassword()">
+    <button onclick="checkPassword()"><i class="fas fa-arrow-right"></i> Ontgrendelen</button>
+    <div id="login-error" class="login-error"></div>
+    <p style="font-size:12px; color: var(--muted); margin-top: 24px;">🔒 Alleen voor TC Keerpunt leden</p>
+  </div>
+</div>
+
+<div id="app-container">
+
+<header>
+  <i class="fas fa-tennis-ball"></i>
+  <div>
+    <div class="logo">TC <span>KEERPUNT</span> · AI COACH</div>
+    <div class="sub"><i class="fas fa-users"></i> Heren 2 · max 270 punten</div>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="show('kal',this)"><i class="fas fa-calendar-alt"></i> Kalender</button>
+  <button onclick="show('team',this)"><i class="fas fa-robot"></i> Opstelling</button>
+  <button onclick="show('players',this)"><i class="fas fa-user-friends"></i> Spelers</button>
+  <button onclick="show('speler-week',this)"><i class="fas fa-crown"></i> Speler v/d Week</button>
+  <button onclick="show('stats',this)"><i class="fas fa-chart-bar"></i> Statistieken</button>
+  <button onclick="show('klassement',this)"><i class="fas fa-trophy"></i> Klassement</button>
+</nav>
+
+<div id="sync-indicator" class="sync-indicator">
+  <i class="fas fa-cloud"></i> <span id="sync-status">Online</span>
+</div>
+
+<!-- KALENDER -->
+<div id="kal" class="page active">
+  <div class="card match-card" onclick="toggle(this)"><div class="match-header"><div class="match-date">26/04</div><div class="match-teams">TC Keerpunt vs Putse TC</div><span class="badge home">Thuis</span></div><div class="match-details" onclick="event.stopPropagation()"><table class="schema-table"><tr><th>#</th><th>Type</th><th>Keerpunt speler(s)</th><th>Tegenstander(s)</th><th>Score</th><th>Gewonnen?</th></tr><tr class="divider-row"><td colspan="6">Enkels</td></tr><tr><td>E1</td><td>Enkel</td><td><input type="text" placeholder="Naam speler"></td><td><input type="text" placeholder="Naam tegenstander"></td><td><input type="text" placeholder="6-3, 7-5"></td><td><select class="win-select"><option value="">—</option><option value="W">✅ Gewonnen</option><option value="L">❌ Verloren</option></select></td></tr><tr><td>E2</td><td>Enkel</td><td><input type="text" placeholder="Naam speler"></td><td><input type="text" placeholder="Naam tegenstander"></td><td><input type="text" placeholder="6-3, 7-5"></td><td><select class="win-select"><option value="">—</option><option value="W">✅ Gewonnen</option><option value="L">❌ Verloren</option></select></td></tr><tr><td>E3</td><td>Enkel</td><td><input type="text" placeholder="Naam speler"></td><td><input type="text" placeholder="Naam tegenstander"></td><td><input type="text" placeholder="6-3, 7-5"></td><td><select class="win-select"><option value="">—</option><option value="W">✅ Gewonnen</option><option value="L">❌ Verloren</option></select></td></tr><tr><td>E4</td><td>Enkel</td><td><input type="text" placeholder="Naam speler"></td><td><input type="text" placeholder="Naam tegenstander"></td><td><input type="text" placeholder="6-3, 7-5"></td><td><select class="win-select"><option value="">—</option><option value="W">✅ Gewonnen</option><option value="L">❌ Verloren</option></select></td></tr><tr class="divider-row"><td colspan="6">Dubbels</td></tr><tr><td>D1</td><td>Dubbel</td><td><input type="text" placeholder="Speler 1 / Speler 2"></td><td><input type="text" placeholder="Naam tegenstanders"></td><td><input type="text" placeholder="6-3, 7-5"></td><td><select class="win-select"><option value="">—</option><option value="W">✅ Gewonnen</option><option value="L">❌ Verloren</option></select></td></tr><tr><td>D2</td><td>Dubbel</td><td><input type="text" placeholder="Speler 1 / Speler 2"></td><td><input type="text" placeholder="Naam tegenstanders"></td><td><input type="text" placeholder="6-3, 7-5"></td><td><select class="win-select"><option value="">—</option><option value="W">✅ Gewonnen</option><option value="L">❌ Verloren</option></select></td></tr></table><div style="margin-top:14px; display:flex; gap:16px;"><label>Eindstand:</label><input type="text" placeholder="0 – 0" style="width:80px;"><button class="btn-save-rating" onclick="updateMatchRatings(this)"><i class="fas fa-save"></i> Opslaan & Sync</button></div></div></div>
+  <div class="card match-card" onclick="toggle(this)"><div class="match-header"><div class="match-date">03/05</div><div class="match-teams">TC Panorama vs TC Keerpunt</div><span class="badge away">Uit</span></div><div class="match-details" onclick="event.stopPropagation()"><table class="schema-table"><tr class="divider-row"><td colspan="6">Enkels</td></tr><tr><td>E1</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E2</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E3</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E4</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr class="divider-row"><td colspan="6">Dubbels</td></tr><tr><td>D1</td><td>Dubbel</td><td><input type="text" placeholder="Naam 1 / Naam 2"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>D2</td><td>Dubbel</td><td><input type="text" placeholder="Naam 1 / Naam 2"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr></table><div style="margin-top:14px; display:flex; gap:16px;"><label>Eindstand:</label><input type="text" placeholder="0 – 0"><button class="btn-save-rating" onclick="updateMatchRatings(this)"><i class="fas fa-save"></i> Opslaan & Sync</button></div></div></div>
+  <div class="card match-card" onclick="toggle(this)"><div class="match-header"><div class="match-date">10/05</div><div class="match-teams">TC Keerpunt vs Wingfield</div><span class="badge home">Thuis</span></div><div class="match-details" onclick="event.stopPropagation()"><table class="schema-table"><tr class="divider-row"><td colspan="6">Enkels</td></tr><tr><td>E1</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E2</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E3</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E4</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr class="divider-row"><td colspan="6">Dubbels</td></tr><tr><td>D1</td><td>Dubbel</td><td><input type="text" placeholder="Naam 1 / Naam 2"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>D2</td><td>Dubbel</td><td><input type="text" placeholder="Naam 1 / Naam 2"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr></table><div style="margin-top:14px; display:flex; gap:16px;"><label>Eindstand:</label><input type="text" placeholder="0 – 0"><button class="btn-save-rating" onclick="updateMatchRatings(this)"><i class="fas fa-save"></i> Opslaan & Sync</button></div></div></div>
+  <div class="card match-card" onclick="toggle(this)"><div class="match-header"><div class="match-date">17/05</div><div class="match-teams">TC Heidepark vs TC Keerpunt</div><span class="badge away">Uit</span></div><div class="match-details" onclick="event.stopPropagation()"><table class="schema-table"><tr class="divider-row"><td colspan="6">Enkels</td></tr><tr><td>E1</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E2</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E3</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E4</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr class="divider-row"><td colspan="6">Dubbels</td></tr><tr><td>D1</td><td>Dubbel</td><td><input type="text" placeholder="Naam 1 / Naam 2"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>D2</td><td>Dubbel</td><td><input type="text" placeholder="Naam 1 / Naam 2"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr></table><div style="margin-top:14px; display:flex; gap:16px;"><label>Eindstand:</label><input type="text" placeholder="0 – 0"><button class="btn-save-rating" onclick="updateMatchRatings(this)"><i class="fas fa-save"></i> Opslaan & Sync</button></div></div></div>
+  <div class="card match-card" onclick="toggle(this)"><div class="match-header"><div class="match-date">24/05</div><div class="match-teams">TC Keerpunt vs K Stade Leuven TC</div><span class="badge home">Thuis</span></div><div class="match-details" onclick="event.stopPropagation()"><table class="schema-table"><tr class="divider-row"><td colspan="6">Enkels</td></tr><tr><td>E1</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E2</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E3</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>E4</td><td>Enkel</td><td><input type="text" placeholder="Naam"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr class="divider-row"><td colspan="6">Dubbels</td></tr><tr><td>D1</td><td>Dubbel</td><td><input type="text" placeholder="Naam 1 / Naam 2"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr><tr><td>D2</td><td>Dubbel</td><td><input type="text" placeholder="Naam 1 / Naam 2"></td><td><input type="text"></td><td><input type="text"></td><td><select class="win-select"><option value="">—</option><option value="W">✅</option><option value="L">❌</option></select></td></tr></table><div style="margin-top:14px; display:flex; gap:16px;"><label>Eindstand:</label><input type="text" placeholder="0 – 0"><button class="btn-save-rating" onclick="updateMatchRatings(this)"><i class="fas fa-save"></i> Opslaan & Sync</button></div></div></div>
+</div>
+
+<!-- OPSTELLING -->
+<div id="team" class="page"><div class="team-layout"><div class="sidebar"><h3><i class="fas fa-users"></i> Beschikbaar</h3><div id="select-list"></div></div><div><div class="card"><h2><i class="fas fa-user"></i> Enkels genereren</h2><p style="margin-bottom:16px;">Berekent de 4 sterkste spelers waarvan de totale som (enkel) <strong>max 270</strong> is.</p><button class="btn-primary" onclick="generateEnkel()"><i class="fas fa-play"></i> Genereer Enkels</button><div id="enkel-output"></div></div><div class="card"><h2><i class="fas fa-user-friends"></i> Dubbels genereren</h2><p style="margin-bottom:16px;">Berekent de 4 sterkste spelers waarvan de totale som (dubbel) <strong>max 270</strong> is en vormt 2 paren.</p><button class="btn-primary" onclick="generateDubbel()"><i class="fas fa-play"></i> Genereer Dubbels</button><div id="dubbel-output"></div></div></div></div></div>
+
+<!-- SPELERS -->
+<div id="players" class="page"><div class="players-grid" id="grid"></div></div>
+
+<!-- SPELER VD WEEK -->
+<div id="speler-week" class="page"><div class="card" style="max-width:600px; margin:0 auto;"><h2><i class="fas fa-crown"></i> Speler van de Week</h2><div id="speler-week-content"></div><p style="font-size:13px; color:var(--muted); margin-top:20px;"><i class="fas fa-info-circle"></i> Gebaseerd op winstpercentage over de laatste 3 gespeelde wedstrijden (min. 2 gespeeld).</p></div></div>
+
+<!-- STATS -->
+<div id="stats" class="page"><div class="card"><h2><i class="fas fa-chart-pie"></i> Teamstatistieken</h2><div id="team-stats-content"></div></div><div class="card"><h2><i class="fas fa-table"></i> Spelerstatistieken</h2><div id="player-stats-content"></div></div></div>
+
+<!-- KLASSEMENT -->
+<div id="klassement" class="page"><div class="card"><h2><i class="fas fa-edit"></i> Wedstrijdresultaten invoeren</h2><p style="margin-bottom:16px;">Vul per ontmoeting de eindstand in (gewonnen partijen). Bijv: "5-1" (thuisploeg wint met 5).</p><div id="matrix-container"></div><button class="btn-primary" onclick="updateKlassement()" style="margin-top:20px;"><i class="fas fa-sync-alt"></i> Update klassement & Sync</button></div><div class="card"><h2><i class="fas fa-trophy"></i> Klassement</h2><div id="klassement-table"></div></div></div>
+
+</div>
+
+<script>
+// ==================== CONFIGURATIE ====================
+const CORRECT_PASSWORD = "keerpunt2026";
+https://script.google.com/macros/s/AKfycbz8ozKNyy2vDqSsRB9wtguLb7CXtCo8o_pe_la7bPey_jW1NxC6fPDfmerg3d1yLIBlMw/exec
+const SCRIPT_URL = "https://script.google.com/macros/s/JOUW_UNIEKE_CODE_HIER/exec";
+
+// ==================== DATA ====================
+const defaultPlayers = [
+  { name:"Pieter",   ptsE:75, ptsD:75, skill:88, interclub:88, desc:"Sterk allround, veel competitie." },
+  { name:"Senna",    ptsE:80, ptsD:80, skill:77, interclub:82, desc:"Clutch interclub speler, presteert boven zijn ranking." },
+  { name:"Lukas",    ptsE:80, ptsD:85, skill:90, interclub:85, desc:"Sterkste pure speler, ook goed in dubbel." },
+  { name:"Thomas",   ptsE:60, ptsD:60, skill:70, interclub:68, desc:"Stabiel maar minder tegen spelers van 70+ punten." },
+  { name:"Nicolas",  ptsE:50, ptsD:55, skill:65, interclub:78, desc:"Dubbel specialist, sterk in samenspeelgevechten." },
+  { name:"Louis",    ptsE:45, ptsD:45, skill:70, interclub:66, desc:"Safe punten tegen zwakkere tegenstanders." },
+  { name:"Noah",     ptsE:25, ptsD:25, skill:40, interclub:45, desc:"Weinig interclub-ervaring, maar laag puntentotaal is troef." }
+];
+
+let players = [...defaultPlayers];
+let matchHistory = [];
+const teams = ["TC Keerpunt", "Putse TC", "TC Panorama", "Wingfield", "TC Heidepark", "K Stade Leuven TC"];
+let wedstrijdMatrix = {};
+const MAX_PTS = 270;
+let available = new Set();
+
+// ==================== SYNC FUNCTIES ====================
+function setSyncStatus(text, type) {
+  const el = document.getElementById('sync-status');
+  const icon = document.querySelector('#sync-indicator i');
+  if (el) el.textContent = text;
+  if (icon) {
+    icon.className = 'fas fa-' + (type === 'synced' ? 'check-circle' : type === 'syncing' ? 'sync fa-spin' : 'cloud');
+  }
+}
+
+async function loadFromCloud() {
+  setSyncStatus('Laden...', 'syncing');
+  try {
+    const response = await fetch(SCRIPT_URL + '?action=getAll');
+    const data = await response.json();
+    
+    if (data.players && data.players.length > 1) {
+      players = data.players.slice(1).map(row => ({
+        name: row[0], ptsE: row[1], ptsD: row[2], skill: row[3], interclub: row[4], desc: row[5]
+      }));
+    }
+    
+    if (data.history && data.history.length > 1) {
+      matchHistory = data.history.slice(1).map(row => ({
+        date: row[0], opponent: row[1], player: row[2], result: row[3]
+      }));
+    }
+    
+    if (data.matrix && data.matrix.length > 0) {
+      wedstrijdMatrix = {};
+      data.matrix.slice(1).forEach(row => { if (row[0] && row[1]) wedstrijdMatrix[row[0]] = row[1]; });
+    }
+    
+    available = new Set(players.map(p => p.name));
+    setSyncStatus('Online', 'synced');
+    return true;
+  } catch (e) {
+    console.error('Load error:', e);
+    setSyncStatus('Offline', 'error');
+    return false;
+  }
+}
+
+async function saveToCloud() {
+  setSyncStatus('Opslaan...', 'syncing');
+  try {
+    const playersData = [['name','ptsE','ptsD','skill','interclub','desc'], ...players.map(p => [p.name,p.ptsE,p.ptsD,p.skill,p.interclub,p.desc])];
+    const historyData = [['date','opponent','player','result'], ...matchHistory.map(h => [h.date,h.opponent,h.player,h.result])];
+    const matrixData = [['key','value'], ...Object.entries(wedstrijdMatrix).map(([k,v]) => [k,v])];
+    
+    const payload = { action: 'saveAll', data: JSON.stringify({ players: playersData, history: historyData, matrix: matrixData }) };
+    const formData = new URLSearchParams();
+    for (let key in payload) formData.append(key, payload[key]);
+    
+    await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+    setSyncStatus('Opgeslagen', 'synced');
+    setTimeout(() => setSyncStatus('Online', 'synced'), 2000);
+  } catch (e) {
+    console.error('Save error:', e);
+    setSyncStatus('Fout bij opslaan', 'error');
+  }
+}
+
+// ==================== LOGIN ====================
+function checkPassword() {
+  const input = document.getElementById('password-input');
+  if (input.value === CORRECT_PASSWORD) {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app-container').style.display = 'block';
+    loadFromCloud().then(() => {
+      loadPlayers();
+      loadSelect();
+      updateSpelerVanDeWeek();
+      updateStats();
+      renderMatrix();
+    });
+  } else {
+    document.getElementById('login-error').innerHTML = '<i class="fas fa-exclamation-circle"></i> Onjuist wachtwoord';
+    input.value = '';
+  }
+}
+
+// ==================== NAVIGATIE ====================
+function show(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'speler-week') updateSpelerVanDeWeek();
+  if (id === 'stats') updateStats();
+  if (id === 'klassement') renderMatrix();
+}
+function toggle(el) { const d = el.querySelector('.match-details'); d.style.display = d.style.display === 'block' ? 'none' : 'block'; }
+
+// ==================== UPDATE MATCH RATINGS ====================
+async function updateMatchRatings(btn) {
+  const matchDiv = btn.closest('.match-details');
+  const matchCard = btn.closest('.match-card');
+  const dateSpan = matchCard.querySelector('.match-date');
+  const teamsSpan = matchCard.querySelector('.match-teams');
+  const matchDate = dateSpan ? dateSpan.innerText : new Date().toLocaleDateString('nl-BE');
+  const teamsText = teamsSpan ? teamsSpan.innerText : '';
+  let opponent = teamsText.includes('vs') ? teamsText.split('vs').map(s => s.trim()).find(t => !t.includes('TC Keerpunt')) || 'Onbekend' : 'Onbekend';
+
+  const rows = matchDiv.querySelectorAll('tr');
+  let updated = false;
+  const newMatches = [];
+
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const playerInput = inputs[0];
+    const winSelect = row.querySelector('.win-select');
+    if (playerInput && winSelect && playerInput.value && winSelect.value) {
+      const names = playerInput.value.split(/[\/,+&]/).map(n => n.trim());
+      const isWin = winSelect.value === 'W';
+      names.forEach(n => {
+        let p = players.find(pl => pl.name.toLowerCase() === n.toLowerCase());
+        if (p) {
+          if (isWin) p.interclub = Math.min(100, p.interclub + 2);
+          else p.interclub = Math.max(0, p.interclub - 1);
+          updated = true;
+          newMatches.push({ date: matchDate, opponent, player: p.name, result: isWin ? 'W' : 'L' });
+        }
+      });
+    }
+  });
+
+  if (updated) {
+    matchHistory.push(...newMatches);
+    await saveToCloud();
+    loadPlayers();
+    updateSpelerVanDeWeek();
+    updateStats();
+    btn.innerHTML = '<i class="fas fa-check"></i> Opgeslagen!';
+    setTimeout(() => btn.innerHTML = '<i class="fas fa-save"></i> Opslaan & Sync', 2000);
+  } else alert("Vul minstens 1 spelersnaam in en kies winst/verlies.");
+}
+
+// ==================== SPELER VD WEEK ====================
+function updateSpelerVanDeWeek() {
+  const c = document.getElementById('speler-week-content');
+  if (matchHistory.length < 2) { c.innerHTML = '<p>Nog niet genoeg data.</p>'; return; }
+  const stats = {}; players.forEach(p => stats[p.name] = { w:0, t:0 });
+  matchHistory.slice(-20).forEach(e => { if (stats[e.player]) { stats[e.player].t++; if (e.result==='W') stats[e.player].w++; } });
+  const cand = Object.entries(stats).filter(([n,s]) => s.t>=2).map(([n,s]) => ({ n, pct: s.t>0?(s.w/s.t)*100:0 }));
+  if (!cand.length) { c.innerHTML = '<p>Geen speler met min. 2 wedstrijden.</p>'; return; }
+  cand.sort((a,b) => b.pct - a.pct); const w = cand[0];
+  c.innerHTML = `<div style="text-align:center"><i class="fas fa-crown" style="font-size:48px;color:#f1c40f;"></i><div style="font-size:36px;">${w.n}</div><div>${w.pct.toFixed(1)}% winst</div></div>`;
+}
+
+// ==================== STATS ====================
+function updateStats() {
+  const tc = document.getElementById('team-stats-content');
+  let tot=0, won=0; const ps={}; players.forEach(p=>ps[p.name]={w:0,t:0});
+  matchHistory.forEach(e=>{ if(ps[e.player]){ ps[e.player].t++; if(e.result==='W') ps[e.player].w++; } });
+  Object.values(ps).forEach(s=>{ tot+=s.t; won+=s.w; });
+  tc.innerHTML = `<div style="display:flex;gap:30px"><div>Partijen: ${tot}</div><div>Gewonnen: ${won}</div><div>Verloren: ${tot-won}</div><div>Winst%: ${tot>0?((won/tot)*100).toFixed(1):0}%</div></div>`;
+  
+  const pc = document.getElementById('player-stats-content');
+  const arr = Object.entries(ps).filter(([n,s])=>s.t>0).map(([n,s])=>({n, ...s}));
+  arr.sort((a,b)=> (b.w/b.t||0) - (a.w/a.t||0));
+  let h = '<table class="stats-table"><tr><th>Speler</th><th>W</th><th>V</th><th>%</th></tr>';
+  arr.forEach(s=>{ h+=`<tr><td>${s.n}</td><td>${s.w}</td><td>${s.t-s.w}</td><td>${((s.w/s.t)*100).toFixed(1)}%</td></tr>`; });
+  pc.innerHTML = h + '</table>';
+}
+
+// ==================== KLASSEMENT ====================
+function renderMatrix() {
+  const c = document.getElementById('matrix-container');
+  let h = '<table class="matrix-table"><tr><th>Thuis \\ Uit</th>' + teams.map(t=>`<th>${t}</th>`).join('') + '</tr>';
+  for(let i=0;i<6;i++) {
+    h += `<tr><td><strong>${teams[i]}</strong></td>`;
+    for(let j=0;j<6;j++) {
+      if(i===j) h += '<td>—</td>';
+      else h += `<td><input class="matrix-input" id="m_${i}_${j}" value="${wedstrijdMatrix[`${teams[i]}|${teams[j]}`]||''}" placeholder="5-1"></td>`;
+    }
+    h += '</tr>';
+  }
+  c.innerHTML = h + '</table>';
+}
+
+async function updateKlassement() {
+  for(let i=0;i<6;i++) for(let j=0;j<6;j++) if(i!==j) {
+    const inp = document.getElementById(`m_${i}_${j}`);
+    if(inp && inp.value.trim()) wedstrijdMatrix[`${teams[i]}|${teams[j]}`] = inp.value.trim();
+  }
+  await saveToCloud();
+  
+  const stats = {}; teams.forEach(t=>stats[t]={g:0,w:0,gl:0,v:0,pt:0,dv:0,dt:0});
+  for(let i=0;i<6;i++) for(let j=0;j<6;j++) if(i!==j) {
+    const u = wedstrijdMatrix[`${teams[i]}|${teams[j]}`]; if(!u) continue;
+    const [th, uit] = u.split('-').map(x=>parseInt(x)); if(isNaN(th)||isNaN(uit)) continue;
+    stats[teams[i]].g++; stats[teams[j]].g++;
+    stats[teams[i]].dv+=th; stats[teams[i]].dt+=uit;
+    stats[teams[j]].dv+=uit; stats[teams[j]].dt+=th;
+    if(th>uit){ stats[teams[i]].w++; stats[teams[i]].pt+=3; stats[teams[j]].v++; }
+    else if(th<uit){ stats[teams[j]].w++; stats[teams[j]].pt+=3; stats[teams[i]].v++; }
+    else { stats[teams[i]].gl++; stats[teams[j]].gl++; stats[teams[i]].pt+=1; stats[teams[j]].pt+=1; }
+  }
+  const sorted = teams.map(t=>({n:t,...stats[t]})).sort((a,b)=>b.pt-a.pt||(b.dv-b.dt)-(a.dv-a.dt));
+  let h = '<table class="klassement-table"><tr><th>#</th><th>Team</th><th>G</th><th>W</th><th>G</th><th>V</th><th>DV</th><th>DT</th><th>DS</th><th>Ptn</th></tr>';
+  sorted.forEach((t,i)=>h+=`<tr><td>${i+1}</td><td>${t.n}</td><td>${t.g}</td><td>${t.w}</td><td>${t.gl}</td><td>${t.v}</td><td>${t.dv}</td><td>${t.dt}</td><td>${t.dv-t.dt}</td><td><strong>${t.pt}</strong></td></tr>`);
+  document.getElementById('klassement-table').innerHTML = h + '</table>';
+}
+
+// ==================== OPSTELLINGEN ====================
+function loadSelect() {
+  const d = document.getElementById('select-list'); d.innerHTML = '';
+  players.forEach(p => d.innerHTML += `<div class="player-check"><input type="checkbox" id="chk_${p.name}" checked onchange="toggleAvail('${p.name}')"><div>${p.name}</div><span class="pts-badge">E${p.ptsE}</span><span class="pts-badge" style="background:#fef9e7;color:#d35400">D${p.ptsD}</span></div>`);
+}
+function toggleAvail(n) { available.has(n) ? available.delete(n) : available.add(n); }
+function getBestTeam(pool, isD) {
+  let best=null, max=-1;
+  const combos = (arr, k) => {
+    if(k>arr.length) return[];
+    if(k===1) return arr.map(v=>[v]);
+    let c=[]; for(let i=0;i<arr.length-k+1;i++){ let h=arr[i]; combos(arr.slice(i+1),k-1).forEach(t=>c.push([h,...t])); } return c;
+  };
+  combos(pool,4).forEach(c=>{
+    let pts = c.reduce((s,p)=>s+(isD?p.ptsD:p.ptsE),0);
+    if(pts<=MAX_PTS){ let r = c.reduce((s,p)=>s+p.interclub,0); if(r>max){ max=r; best=c; } }
+  });
+  return best?.sort((a,b)=>b.interclub-a.interclub);
+}
+function generateEnkel(){
+  const team = getBestTeam(players.filter(p=>available.has(p.name)), false);
+  const out = document.getElementById('enkel-output');
+  if(!team) { out.innerHTML='<div class="warning">Geen geldige combinatie!</div>'; return; }
+  let h = '<div class="section-title">Enkels</div><div class="lineup-grid">';
+  team.forEach((p,i)=>h+=`<div class="lineup-row"><span>${i+1}</span><span>${p.name}</span><span>${p.ptsE} pt</span></div>`);
+  h += `</div><div class="totaal-bar"><span>Totaal: ${team.reduce((s,p)=>s+p.ptsE,0)} pt</span><span>Max 270</span></div>`;
+  out.innerHTML = h;
+}
+function generateDubbel(){
+  const team = getBestTeam(players.filter(p=>available.has(p.name)), true);
+  const out = document.getElementById('dubbel-output');
+  if(!team) { out.innerHTML='<div class="warning">Geen geldige combinatie!</div>'; return; }
+  const p1=[team[0],team[3]], p2=[team[1],team[2]];
+  let h = '<div class="section-title">Dubbels</div><div class="lineup-grid">';
+  h += `<div class="lineup-row"><span>D1</span><span>${p1[0].name} / ${p1[1].name}</span><span>${p1[0].ptsD+p1[1].ptsD} pt</span></div>`;
+  h += `<div class="lineup-row"><span>D2</span><span>${p2[0].name} / ${p2[1].name}</span><span>${p2[0].ptsD+p2[1].ptsD} pt</span></div>`;
+  h += `</div><div class="totaal-bar"><span>Totaal: ${team.reduce((s,p)=>s+p.ptsD,0)} pt</span><span>Max 270</span></div>`;
+  out.innerHTML = h;
+}
+function loadPlayers(){
+  const g = document.getElementById('grid'); g.innerHTML = '';
+  players.forEach(p => {
+    g.innerHTML += `<div class="player-card"><h3>${p.name}</h3><div class="klass-tags"><span>E${p.ptsE}</span><span>D${p.ptsD}</span></div><div class="stat-row"><div class="stat-label">Skill ${p.skill}%</div><div class="progress"><div class="bar" style="width:${p.skill}%"></div></div></div><div class="stat-row"><div class="stat-label">Interclub ${p.interclub}%</div><div class="progress"><div class="bar" style="width:${p.interclub}%"></div></div></div><p class="desc-text">${p.desc}</p></div>`;
+  });
+}
+</script>
+</body>
+</html>
